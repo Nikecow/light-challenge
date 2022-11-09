@@ -1,11 +1,14 @@
 package org.light.challenge.app
 
-import org.jetbrains.exposed.sql.Database
+import mu.KotlinLogging
+import org.light.challenge.data.Database
+import org.light.challenge.logic.core.WorkflowService
+
+private val logger = KotlinLogging.logger {}
 
 fun main() {
+    val service = WorkflowService()
 
-    // in-memory DB
-    val db = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
-
-    // TODO: placeholder - start the program here
+//    val invoice = Invoice()
+//    service.handleInvoice()
 }

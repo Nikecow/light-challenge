@@ -19,6 +19,9 @@ dependencies {
     // Mockk
     testImplementation(Libraries.mockk)
 
+    // AssertK
+    testImplementation(Libraries.assertk)
+
     // Junit
     testImplementation(Libraries.junit_jupiter_api)
     testRuntimeOnly(Libraries.junit_jupiter_engine)

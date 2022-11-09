@@ -6,6 +6,7 @@ object Libraries {
     const val microutils_logging = "io.github.microutils:kotlin-logging:1.7.8"
 
     const val mockk = "io.mockk:mockk:1.9.3"
+    const val assertk = "com.willowtreeapps.assertk:assertk-jvm:0.25"
 
     const val exposed = "org.jetbrains.exposed:exposed:0.17.14"
     const val h2_database = "com.h2database:h2:1.4.200"
