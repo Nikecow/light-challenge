@@ -13,15 +13,15 @@ import org.jetbrains.exposed.sql.update
 import org.light.challenge.data.domain.DepartmentName
 import org.light.challenge.data.domain.NotifyMethod
 
-// todo: make this static?
-class Database {
-    private val db: Database
+// todo: https://ktor.io/docs/interactive-website-add-persistence.html#startup make it mockable with interface?
+object DatabaseFactory {
+    private val db: Database  = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
     private val logger = KotlinLogging.logger {}
 
-    init {
+    fun init() {
         logger.info { "Connecting to database" }
 
-        db = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
+
 
         transaction {
             addLogger(StdOutSqlLogger)
@@ -44,7 +44,7 @@ class Database {
                 mail = "jack.smith@gmail.com",
                 slack = "234567",
                 mngr = true,
-                deptId = mktDeptId.value
+                deptId = mktDeptId
             )
 
             val mktEmployeeId1 = insertEmployee(
@@ -53,7 +53,7 @@ class Database {
                 mail = "rico.vlieger@gmail.com",
                 slack = "10345678",
                 mngr = false,
-                deptId = mktDeptId.value
+                deptId = mktDeptId
             )
 
             val mktEmployeeId2 = insertEmployee(
@@ -62,7 +62,7 @@ class Database {
                 mail = "michael.rodriguez@gmail.com",
                 slack = "11345678",
                 mngr = false,
-                deptId = mktDeptId.value
+                deptId = mktDeptId
             )
 
             val mktManagerId = insertEmployee(
@@ -71,7 +71,7 @@ class Database {
                 mail = "chang.lee@gmail.com",
                 slack = "12345678",
                 mngr = true,
-                deptId = mktDeptId.value
+                deptId = mktDeptId
             )
 
             // Finance Employees
@@ -81,7 +81,7 @@ class Database {
                 mail = "william.smith@gmail.com",
                 slack = "123456",
                 mngr = true,
-                deptId = finDeptId.value
+                deptId = finDeptId
             )
 
             val finEmployeeId1 = insertEmployee(
@@ -90,7 +90,7 @@ class Database {
                 mail = "mark.bouwer@gmail.com",
                 slack = "345678",
                 mngr = false,
-                deptId = finDeptId.value
+                deptId = finDeptId
             )
 
             val finEmployeeId2 = insertEmployee(
@@ -99,7 +99,7 @@ class Database {
                 mail = "mike.garcia@gmail.com",
                 slack = "456789",
                 mngr = false,
-                deptId = finDeptId.value
+                deptId = finDeptId
             )
 
             val finManagerId = insertEmployee(
@@ -108,18 +108,18 @@ class Database {
                 mail = "james.johnson@gmail.com",
                 slack = "567891",
                 mngr = true,
-                deptId = finDeptId.value
+                deptId = finDeptId
             )
 
-            promoteEmployeeToHead(deptId = finDeptId.value, empId = cfoId.value)
-            promoteEmployeeToHead(deptId = mktDeptId.value, empId = cmoId.value)
+            promoteEmployeeToHead(deptId = finDeptId.value, empId = cfoId)
+            promoteEmployeeToHead(deptId = mktDeptId.value, empId = cmoId)
 
-            val wId = insertWorkflow(cId.value, "10000")
+            val wId = insertWorkflow(cId, "10000")
 
             // RuleTable 1
             insertRule(
-                flowId = wId.value,
-                deptId = mktDeptId.value,
+                flowId = wId,
+                deptId = mktDeptId,
                 method = NotifyMethod.EMAIL,
                 cutoff = "10000",
                 manager = null
@@ -127,8 +127,8 @@ class Database {
 
             // RuleTable 2
             insertRule(
-                flowId = wId.value,
-                deptId = finDeptId.value,
+                flowId = wId,
+                deptId = finDeptId,
                 method = NotifyMethod.SLACK,
                 cutoff = "10000",
                 manager = null
@@ -136,8 +136,8 @@ class Database {
 
             // RuleTable 3
             insertRule(
-                flowId = wId.value,
-                deptId = finDeptId.value,
+                flowId = wId,
+                deptId = finDeptId,
                 method = NotifyMethod.SLACK,
                 cutoff = "5000",
                 manager = true
@@ -145,8 +145,8 @@ class Database {
 
             // RuleTable 4 (fallback rule)
             insertRule(
-                flowId = wId.value,
-                deptId = finDeptId.value,
+                flowId = wId,
+                deptId = finDeptId,
                 method = NotifyMethod.SLACK,
                 cutoff = null,
                 manager = null
@@ -160,7 +160,7 @@ class Database {
         it[name] = cmpName
     }
 
-    private fun insertEmployee(cId: EntityID<Int>, fullName: String, mail: String, slack: String, mngr: Boolean, deptId: Int) =
+    private fun insertEmployee(cId: EntityID<Int>, fullName: String, mail: String, slack: String, mngr: Boolean, deptId: EntityID<Int>) =
         EmployeeTable.insertAndGetId {
             it[companyId] = cId
             it[name] = fullName
@@ -170,7 +170,7 @@ class Database {
             it[departmentId] = deptId
         }
 
-    private fun promoteEmployeeToHead(deptId: Int, empId: Int) {
+    private fun promoteEmployeeToHead(deptId: Int, empId: EntityID<Int>) {
         DepartmentTable.update({ DepartmentTable.id eq deptId }) {
             it[headEmployeeId] = empId
         }
@@ -180,36 +180,34 @@ class Database {
         it[name] = department.name
     }
 
-    private fun insertWorkflow(cId: Int, threshold: String?) = WorkflowTable.insertAndGetId {
+    private fun insertWorkflow(cId: EntityID<Int>, threshold: String?) = WorkflowTable.insertAndGetId {
         it[companyId] = cId
         it[chiefThreshold] = threshold
     }
 
     private fun insertRule(
-        flowId: Int,
-        deptId: Int,
+        flowId: EntityID<Int>,
+        deptId: EntityID<Int>,
         method: NotifyMethod,
         cutoff: String?,
         manager: Boolean?,
-    ): Int {
+    ): EntityID<Int> {
         val rId = RuleTable.insertAndGetId {
             it[workflowId] = flowId
         }
 
         ConditionTable.insert {
-            it[ruleId] = rId.value
+            it[ruleId] = rId
             it[departmentId] = deptId
             it[cutoffAmount] = cutoff
             it[requiresManager] = manager
         }
 
         ActionTable.insert {
-            it[ruleId] = rId.value
+            it[ruleId] = rId
             it[notifyMethod] = method.name
         }
 
-        return rId.value
+        return rId
     }
-
-    fun getDB() = db
 }

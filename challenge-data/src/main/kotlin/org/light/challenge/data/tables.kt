@@ -13,31 +13,31 @@ object EmployeeTable : IntIdTable() {
     val email = varchar("email", 50).uniqueIndex()
     val slackId = varchar("slackId", 50).uniqueIndex()
     val manager = bool("manager")
-    val departmentId = integer("department_id")
+    val departmentId = reference("department_id", DepartmentTable)
 }
 
 object DepartmentTable : IntIdTable() {
     val name = varchar("name", 50).uniqueIndex()
-    val headEmployeeId = integer("head_employee_id").nullable()
+    val headEmployeeId = reference("head_employee_id", EmployeeTable).nullable()
 }
 
 object WorkflowTable : IntIdTable() {
-    val companyId = integer("company_id")
+    val companyId = reference("company_id", CompanyTable)
     val chiefThreshold = varchar("chief_threshold", 50).nullable()
 }
 
 object RuleTable : IntIdTable() {
-    val workflowId = integer("workflow_id")
+    val workflowId = reference("workflow_id", WorkflowTable)
 }
 
 object ConditionTable : IntIdTable() {
-    val ruleId = integer("rule_id")
-    val departmentId = integer("department_id")
+    val ruleId = reference("rule_id", RuleTable)
+    val departmentId = reference("department_id", DepartmentTable)
     val cutoffAmount = varchar("cutoff_amount", 50).nullable()
     val requiresManager = bool("requires_manager").nullable()
 }
 
 object ActionTable : IntIdTable() {
-    val ruleId = integer("rule_id")
+    val ruleId = reference("rule_id", RuleTable)
     val notifyMethod = varchar("notify_method", 50)
 }

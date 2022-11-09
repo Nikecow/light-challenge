@@ -1,7 +1,6 @@
 package org.light.challenge.app
 
 import mu.KotlinLogging
-import org.light.challenge.data.Database
 import org.light.challenge.logic.core.WorkflowService
 
 private val logger = KotlinLogging.logger {}
