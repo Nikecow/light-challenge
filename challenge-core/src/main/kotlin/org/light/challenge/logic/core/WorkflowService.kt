@@ -17,6 +17,7 @@ class WorkflowService {
     private val notifyService = NotifyService()
 
     private val logger = KotlinLogging.logger {}
+
     fun handleInvoice(invoice: Invoice): NotifyStatus {
 
         val companyId = invoice.companyId
