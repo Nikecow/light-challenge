@@ -13,7 +13,7 @@ import org.light.challenge.data.domain.DepartmentName
 import org.light.challenge.data.domain.NotifyMethod
 import java.math.BigDecimal
 
-object DatabaseFactory {
+object CompanyDAO {
     private var database: Database? = null
     private val logger = KotlinLogging.logger {}
 

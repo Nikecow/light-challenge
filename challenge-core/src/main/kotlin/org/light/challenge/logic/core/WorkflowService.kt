@@ -1,7 +1,7 @@
 package org.light.challenge.logic.core
 
 import mu.KotlinLogging
-import org.light.challenge.data.DatabaseFactory
+import org.light.challenge.data.CompanyDAO
 import org.light.challenge.data.domain.Company
 import org.light.challenge.data.domain.Employee
 import org.light.challenge.data.domain.Rule
@@ -18,7 +18,7 @@ class WorkflowService(
     private val workflowRepository: WorkflowRepository,
     private val notifyService: NotifyService
 ) {
-    private val db = DatabaseFactory.connectAndInitDefaults()
+    private val db = CompanyDAO.connectAndInitDefaults()
     private val logger = KotlinLogging.logger {}
 
     fun handleInvoice(invoice: Invoice): NotifyStatus {

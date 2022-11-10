@@ -7,19 +7,19 @@ import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.light.challenge.data.CompanyDAO
 import org.light.challenge.data.CompanyTable
-import org.light.challenge.data.DatabaseFactory
 import org.light.challenge.data.DepartmentTable
 import org.light.challenge.data.WorkflowTable
 import java.math.BigDecimal
 
 class WorkflowRepositoryIT {
-    private val db = DatabaseFactory.connect()
+    private val db = CompanyDAO.connect()
     private val subject = WorkflowRepository()
 
     @BeforeEach
     internal fun init() {
-        DatabaseFactory.resetTables()
+        CompanyDAO.resetTables()
     }
 
     @Test
