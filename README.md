@@ -11,6 +11,16 @@
 - **arg3** is an _enum_ for the `department` (_Finance, Marketing_)
 - **arg4** is a _bool_ for `manager_approval`
 
+#### Some Quick commands (note: the default chief_cutoff is $10,000)
+
+```sh
+./gradlew run --args='1 15000 Marketing true' # Sends request to marketing chief via email
+./gradlew run --args='1 15000 Finance true'   # Sends request to finance chief via slack
+./gradlew run --args='1 6000 Finance true'    # Sends request to finance manager via email
+./gradlew run --args='1 6000 Finance false'   # Sends request to finance employee via slack
+./gradlew run --args='1 4000 Finance true'    # Sends request to finance employee via slack
+```
+
 ### Assumptions
 - We assume every department has at least 1 Chief, 1 manager and 1 regular employee.
 - All Chiefs are managers, but not all managers are Chiefs and the same goes for employees and managers.
