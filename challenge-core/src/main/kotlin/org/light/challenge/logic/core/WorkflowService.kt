@@ -18,7 +18,10 @@ class WorkflowService(
     private val workflowRepository: WorkflowRepository,
     private val notifyService: NotifyService
 ) {
-    private val db = CompanyDAO.connectAndInitDefaults()
+    init {
+        CompanyDAO.initDefaults()
+    }
+
     private val logger = KotlinLogging.logger {}
 
     fun handleInvoice(invoice: Invoice): NotifyStatus {
@@ -60,10 +63,8 @@ class WorkflowService(
         val ruleByApproval = ruleByDepartment.filter { r -> r.requiresManager == invoice.requiresManager }
 
         val filteredRule =
-            ruleByApproval.firstOrNull() ?:
-            ruleByDepartment.firstOrNull() ?:
-            rulesByCutoff.firstOrNull() ?:
-            rules.lastOrNull()
+            ruleByApproval.firstOrNull() ?: ruleByDepartment.firstOrNull() ?: rulesByCutoff.firstOrNull()
+            ?: rules.lastOrNull()
             ?: throw MissingDataException("No rules found in the workflow with id ${workflow.id}")
 
         logger.info {

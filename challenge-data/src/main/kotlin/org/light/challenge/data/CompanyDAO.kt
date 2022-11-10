@@ -41,7 +41,7 @@ object CompanyDAO {
         }
     }
 
-    fun connectAndInitDefaults() {
+    fun initDefaults() {
         logger.info { "Connecting to database" }
 
         connect()
