@@ -16,7 +16,7 @@ class WorkflowService(
     private val workflowRepository: WorkflowRepository,
     private val notifyService: NotifyService
 ) {
-    private val db = DatabaseFactory.init()
+    private val db = DatabaseFactory.connectAndInitDefaults()
     private val logger = KotlinLogging.logger {}
 
     fun handleInvoice(invoice: Invoice): NotifyStatus {

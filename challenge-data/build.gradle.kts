@@ -18,6 +18,9 @@ dependencies {
     testImplementation(Libraries.mockito_kotlin)
     testImplementation(Libraries.mockito_inline)
 
+    // AssertK
+    testImplementation(Libraries.assertk)
+
     // Junit
     testImplementation(Libraries.junit_jupiter_api)
     testRuntimeOnly(Libraries.junit_jupiter_engine)

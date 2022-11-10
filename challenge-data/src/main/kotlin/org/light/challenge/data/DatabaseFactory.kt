@@ -13,19 +13,17 @@ import org.light.challenge.data.domain.DepartmentName
 import org.light.challenge.data.domain.NotifyMethod
 import java.math.BigDecimal
 
-// todo: https://github.com/google-developer-training/android-kotlin-fundamentals-apps/blob/master/RepositoryPattern/app/src/main/java/com/example/android/devbyteviewer/database/Room.kt
 object DatabaseFactory {
-    private val db: Database = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
+    private var database: Database? = null
     private val logger = KotlinLogging.logger {}
 
-    fun init() {
-        logger.info { "Connecting to database" }
+    fun connect() =
+        Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC").also {
+            database = it
+        }
 
+    fun resetTables() {
         transaction {
-            addLogger(StdOutSqlLogger)
-
-            logger.info { "Initializing database tables" }
-
             SchemaUtils.drop(
                 CompanyTable,
                 WorkflowTable,
@@ -40,6 +38,20 @@ object DatabaseFactory {
                 RuleTable,
                 DepartmentTable,
             )
+        }
+    }
+
+    fun connectAndInitDefaults() {
+        logger.info { "Connecting to database" }
+
+        connect()
+
+        transaction {
+            addLogger(StdOutSqlLogger)
+
+            logger.info { "Initializing database tables" }
+
+            resetTables()
 
             logger.info { "Populating database with entries" }
 

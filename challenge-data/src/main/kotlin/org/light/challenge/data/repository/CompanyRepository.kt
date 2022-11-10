@@ -10,10 +10,6 @@ class CompanyRepository {
 
         entity?.toCompany()
     }
-
-    fun getAll(): List<Company> = transaction {
-        CompanyEntity.all().map { it.toCompany() }
-    }
 }
 
 
