@@ -11,7 +11,7 @@
 - **arg3** is an _enum_ for the `department` (_Finance, Marketing_)
 - **arg4** is a _bool_ for `manager_approval`
 
-#### Some Quick commands (note: the default chief_cutoff is $10,000)
+#### Some Quick commands for the Flowchart (note: the default chief_cutoff is $10,000 in this case)
 
 ```sh
 ./gradlew run --args='1 15000 Marketing true' # Sends request to marketing chief via email
@@ -31,14 +31,14 @@
 - A workflow specifies the amount which will always requires a Chief.
 - If no conditions are met, send the request to a regular employee of the department attached to the fall back rule.
 - For currencies we use `BigDecimals` in the database and application to maintain precision.
-- Priority of rules are in ordered by _descending_ order of the `cutoff_amount`.
+- Priority of rules are evaluated by _descending_ order of the `cutoff_amount`, then the `department` and finally the `requires_approval`.
 - An approval request will be sent to a manager if either the `invoice` or the `rule` has `true` for `requires_manager`.
 
 ### Possible Improvements:
 - We currently retrieve big data sets from the Database at once, preventing lots of manual lookups. On production a wiser thing could be to split this up into multiple queries to avoid huge memory usage.
 - The primary keys use auto-incrementing integers but in production probably a `UUID` would be a better idea.
 - Currently a rule can only have 1 set of conditions and 1 set of actions but this can be modelled to allow for several conditions and actions per rule.
-- Allow for the possibility to assign manual priority per rule as now it simply goes by descending order of `cutoff_amount`.
+- Allow for the possibility to assign manual priority to a rule as now all conditions are simply evaluated one by one.
 
 ### Database ERD:
 ![database_diagram](database_light.png)
