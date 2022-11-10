@@ -9,7 +9,7 @@
 - **arg1** is an _int_ for the `companyId` (already prefilled for _1_)
 - **arg2** is a _decimal_ for the `invoiceAmount` in dollars
 - **arg3** is an _enum_ for the `department` (_Finance, Marketing_)
-- **arg4** is a _bool_ for `manager_approval`
+- **arg4** is a _bool_ for `requiresManager`
 
 #### Quick command list from the Flowchart scenarios
 
