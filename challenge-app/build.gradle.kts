@@ -26,8 +26,9 @@ dependencies {
     implementation(Libraries.slf_log4j)
     implementation(Libraries.microutils_logging)
 
-    // Mockk
-    testImplementation(Libraries.mockk)
+    // Mockito Kotlin
+    testImplementation(Libraries.mockito_kotlin)
+    testImplementation(Libraries.mockito_inline)
 
     // Junit
     testImplementation(Libraries.junit_jupiter_api)

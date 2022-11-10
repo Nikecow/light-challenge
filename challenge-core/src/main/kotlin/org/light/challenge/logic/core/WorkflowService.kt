@@ -8,14 +8,15 @@ import org.light.challenge.data.domain.Rule
 import org.light.challenge.data.domain.Workflow
 import org.light.challenge.data.repository.CompanyRepository
 import org.light.challenge.data.repository.WorkflowRepository
+import java.math.BigDecimal
 
 
-class WorkflowService {
+class WorkflowService(
+    private val companyRepository: CompanyRepository,
+    private val workflowRepository: WorkflowRepository,
+    private val notifyService: NotifyService
+) {
     private val db = DatabaseFactory.init()
-    private val companyRepo = CompanyRepository()
-    private val workflowRepository = WorkflowRepository()
-    private val notifyService = NotifyService()
-
     private val logger = KotlinLogging.logger {}
 
     fun handleInvoice(invoice: Invoice): NotifyStatus {
@@ -24,7 +25,7 @@ class WorkflowService {
 
         logger.info { "Handling invoice for companyId $companyId" }
 
-        val company = companyRepo.getById(companyId)
+        val company = companyRepository.getById(companyId)
             ?: throw MissingDataException("No such company with id $companyId")
 
         logger.info { "Retrieved company with name ${company.name}" }
@@ -36,11 +37,13 @@ class WorkflowService {
 
         val rule = calculateRule(workflow, invoice)
 
-        val targetEmployee = determineEmployee(rule, company.employees, workflow)
+        val targetEmployee = determineEmployee(company, rule, invoice, workflow.chiefThreshold)
 
         val status = notifyService.notifyEmployee(targetEmployee, rule.notifyMethod)
 
-        return status.also { logger.info { "Notified employee with status: ${it.name}" } }
+        return status.also {
+            logger.info { "Notified employee from department ${targetEmployee.department.name} with status: ${it.name}" }
+        }
     }
 
     fun calculateRule(workflow: Workflow, invoice: Invoice): Rule {
@@ -48,37 +51,47 @@ class WorkflowService {
 
         logger.info { "Determining rule for invoice with amount $invoiceAmount" }
 
-        // Rules are ordered on descending cutoffAmount
+        // Rules are ordered on init on descending cutoffAmount
         val rules = workflow.rules
 
-        rules.forEach { r -> logger.info("Rule with id ${r.id} and cutoff ${r.cutoffAmount} dollars") }
-
-        val rule = rules.firstOrNull { r -> r.cutoffAmount?.compareTo(invoiceAmount) == -1 } ?: rules.last()
+        val rule = rules.firstOrNull { r -> r.cutoffAmount?.compareTo(invoiceAmount) == -1 }
+            ?: rules.lastOrNull() ?: throw MissingDataException("No rules found in the workflow with id ${workflow.id}")
 
         logger.info { "Using rule ${rule.id} with cutoff ${rule.cutoffAmount}" }
 
         return rule
     }
 
-    fun determineEmployee(rule: Rule, employees: List<Employee>, workflow: Workflow): Employee {
-        val headEmployeeId = rule.department.headEmployeeId
-        val chiefThreshold = workflow.chiefThreshold
+    fun determineEmployee(company: Company, rule: Rule, invoice: Invoice, chiefThreshold: BigDecimal?): Employee {
         val departmentName = rule.department.name
+        val deptManagersOnly =
+            company.employees.filter { it.department.id == rule.department.id && rule.department.headEmployeeId !== it.id }
 
         logger.info { "Determining employee to notify based on rule with id ${rule.id}" }
 
         val employee = when {
-            rule.cutoffAmount?.compareTo(chiefThreshold) == 1 -> employees.firstOrNull { it.id == rule.department.headEmployeeId }
-                ?: throw MissingDataException("No head employee found in the department $departmentName with id $headEmployeeId")
+            invoice.amount.compareTo(chiefThreshold) == 1 -> {
+                val department = company.departments.firstOrNull { it.name.toString() == invoice.department.toString() }
+                val headEmployeeId = department?.headEmployeeId
+                return company.employees.firstOrNull { it.id == headEmployeeId }
+                    ?: throw MissingDataException("No Chief found in the department ${department?.name} with id $headEmployeeId")
+            }
 
-            rule.requiresManager == true -> employees.firstOrNull { it.manager && it.department.id == rule.department.id }
-                ?: throw MissingDataException("No manager found in the department $departmentName")
+            rule.requiresManager == true || invoice.requiresManager == true ->
+                deptManagersOnly.firstOrNull { it.manager && it.department.id == rule.department.id }
+                    ?: throw MissingDataException("No manager found in the department $departmentName")
 
-            else -> employees.firstOrNull { it.department.id == rule.department.id }
+            else -> company.employees.firstOrNull { it.department.id == rule.department.id && !it.manager }
                 ?: throw MissingDataException("No employees found in the department $departmentName")
         }
 
-        return employee.also { logger.info { "Target employee is \"${it.name}\" with id ${it.id}" } }
+        return employee.also { logger.info { "Target ${employee.getTitle()} is \"${it.name}\" with id ${it.id}" } }
+    }
+
+    fun Employee.getTitle() = when {
+        department.headEmployeeId == id -> "chief"
+        manager -> "manager"
+        else -> "employee"
     }
 }
 

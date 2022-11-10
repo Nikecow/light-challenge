@@ -1,39 +1,379 @@
 package org.light.challenge.logic.core
 
+import assertk.all
+import assertk.assertThat
+import assertk.assertions.hasClass
+import assertk.assertions.isEqualTo
+import assertk.assertions.isFailure
+import assertk.assertions.messageContains
 import org.junit.jupiter.api.Test
+import org.light.challenge.data.domain.Company
+import org.light.challenge.data.domain.Department
+import org.light.challenge.data.domain.DepartmentName.FINANCE
+import org.light.challenge.data.domain.DepartmentName.MARKETING
+import org.light.challenge.data.domain.Employee
+import org.light.challenge.data.domain.NotifyMethod
+import org.light.challenge.data.domain.Rule
+import org.light.challenge.data.domain.Workflow
+import org.light.challenge.data.repository.CompanyRepository
+import org.light.challenge.data.repository.WorkflowRepository
+import org.mockito.Mockito.verify
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
+import java.math.BigDecimal
 
 internal class WorkflowServiceTest {
-    private val subject = WorkflowService()
+    private val companyRepository: CompanyRepository = mock()
+    private val workflowRepository: WorkflowRepository = mock()
+    private val notifyService: NotifyService = mock()
+
+    private val subject = WorkflowService(companyRepository, workflowRepository, notifyService)
+
+    val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
+    val department = Department(1, FINANCE, null)
+    val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, department)
+    val company = Company(1, "SomeCompany", listOf(employee), listOf(department))
+    val rules = listOf(Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK))
+    val workflow = Workflow(1, 1,  10000.toBigDecimal(), rules)
 
     @Test
-    internal fun `should process an invoice`() {
+    internal fun `should process a Slack invoice`() {
         // given
-        val invoice = Invoice(1, 5001.toBigDecimal(), DepartmentName.FINANCE, false)
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(employee, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
 
         // when
-        subject.handleInvoice(invoice)
+        val actual = subject.handleInvoice(invoice)
 
         // then
-//        argumentCaptor<MeterReport>().apply {
-//            verify(customObjectMapper).writeToFile(
-//                eq(File("target/Green_Button_Usage_Feed_1a46b097-b80a-4e25-8852-44f88b9179ae.json")),
-//                capture()
-//            )
-//
-//            assertThat(firstValue.id).isEqualTo(UUID.fromString("1a46b097-b80a-4e25-8852-44f88b9179ae"))
-//            assertThat(firstValue.title).isEqualTo("Green Button Usage Feed")
-//            assertThat(firstValue.meterInfo.flowDirection).isEqualTo(FlowDirection.UP)
-//            assertThat(firstValue.meterInfo.unitPrice).isEqualByComparingTo("0.07")
-//            assertThat(firstValue.meterInfo.readingUnit).isEqualTo(ReadingUnit.KWH)
-//            assertThat(firstValue.priceSum).isEqualByComparingTo("45500.00")
-//            assertThat(firstValue.usageSum).isEqualByComparingTo("650000.00")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T07:00:00Z")]!!.usage).isEqualByComparingTo("340000.00")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T07:00:00Z")]!!.price).isEqualByComparingTo("23800.00")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T08:00:00Z")]!!.usage).isEqualByComparingTo("260000.000")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T08:00:00Z")]!!.price).isEqualByComparingTo("18200.00")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T09:00:00Z")]!!.usage).isEqualByComparingTo("50000.00")
-//            assertThat(firstValue.hourlyData[ZonedDateTime.parse("2019-04-17T09:00:00Z")]!!.price).isEqualByComparingTo("3500.00")
-//        }
-//    }
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(employee, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should process an Email invoice`() {
+        // given
+        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
+        val department = Department(1, FINANCE, null)
+        val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, department)
+        val company = Company(1, "SomeCompany", listOf(employee), listOf(department))
+        val rules = listOf(Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.EMAIL))
+        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(employee, NotifyMethod.EMAIL)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(employee, NotifyMethod.EMAIL)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    /*
+    * Even though the rule says go to Finance, for invoices with an amount
+    * higher than the chiefThreshold the invoice should go to the invoice
+    * related department, which is Marketing in this case
+    * */
+    internal fun `should send an email to the CMO when invoice amount higher than chiefThreshold related to Marketing`() {
+        // given
+        val chiefThreshold = 600000.toBigDecimal()
+        val invoice = Invoice(1, chiefThreshold.add(BigDecimal.ONE), DepartmentName.MARKETING, false)
+
+        val chiefOfFinanceId = 100
+        val chiefOfMarketingId = 200
+
+        val departmentFinance = Department(1, FINANCE, chiefOfFinanceId)
+        val departmentMarketing = Department(2, MARKETING, chiefOfMarketingId)
+
+
+        val managerOfMarketing =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentMarketing)
+        val chiefOfFinance =
+            Employee(chiefOfFinanceId, 1, "Will Smith", "cfo@mail.com", "51234", true, departmentFinance)
+        val chiefOfMarketing =
+            Employee(chiefOfMarketingId, 1, "Michael Dorsey", "cmo@mail.com", "61234", true, departmentMarketing)
+        val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(managerOfMarketing, employee, chiefOfFinance, chiefOfMarketing),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), true, NotifyMethod.EMAIL))
+        val workflow = Workflow(1, 1, chiefThreshold, rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(chiefOfMarketing, NotifyMethod.EMAIL)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(chiefOfMarketing, NotifyMethod.EMAIL)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should send a Slack to a marketing manager with invoice amount NOT higher than chiefThreshold`() {
+        // given
+        val chiefThreshold = 600000.toBigDecimal()
+        val invoice = Invoice(1, chiefThreshold, DepartmentName.MARKETING, false)
+
+        val chiefOfFinanceId = 100
+        val chiefOfMarketingId = 200
+
+        val departmentFinance = Department(1, FINANCE, chiefOfFinanceId)
+        val departmentMarketing = Department(2, MARKETING, chiefOfMarketingId)
+
+        val managerOfMarketing =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentMarketing)
+        val chiefOfFinance =
+            Employee(chiefOfFinanceId, 1, "Will Smith", "cfo@mail.com", "51234", true, departmentFinance)
+        val chiefOfMarketing =
+            Employee(chiefOfMarketingId, 1, "Michael Dorsey", "cmo@mail.com", "61234", true, departmentMarketing)
+        val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(managerOfMarketing, employee, chiefOfFinance, chiefOfMarketing),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentMarketing, 5000.toBigDecimal(), true, NotifyMethod.SLACK))
+        val workflow = Workflow(1, 1, chiefThreshold, rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(managerOfMarketing, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(managerOfMarketing, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should send a Slack to a Finance employee with invoice amount NOT higher than any threshold with rule which does NOT require manager`() {
+        // given
+        val requiresManager = false
+        val invoice = Invoice(1, 20.toBigDecimal(), DepartmentName.FINANCE, requiresManager)
+
+        val departmentFinance = Department(50, FINANCE, 100)
+        val departmentMarketing = Department(40, MARKETING, 200)
+
+        val managerOfFinance =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentFinance)
+        val financeEmployee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", false, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(financeEmployee, managerOfFinance),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), requiresManager, NotifyMethod.SLACK))
+        val workflow = Workflow(1, 1, 100000.toBigDecimal(), rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(financeEmployee, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(financeEmployee, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should send a Slack to a Finance manager with invoice which does not require manager with rule which does require manager`() {
+        // given
+        val invoice = Invoice(1, 20.toBigDecimal(), DepartmentName.FINANCE, false)
+
+        val departmentFinance = Department(50, FINANCE, 100)
+        val departmentMarketing = Department(40, MARKETING, 200)
+
+        val managerOfFinance =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentFinance)
+        val financeEmployee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", false, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(financeEmployee, managerOfFinance),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), true, NotifyMethod.SLACK))
+        val workflow = Workflow(1, 1, 100000.toBigDecimal(), rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(managerOfFinance, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(managerOfFinance, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should send a Slack to a Finance manager with invoice amount which does require manager but not higher than chief threshold with rule which does NOT require manager`() {
+        // given
+        val invoice = Invoice(1, 20.toBigDecimal(), DepartmentName.FINANCE, true)
+
+        val departmentFinance = Department(50, FINANCE, 100)
+        val departmentMarketing = Department(40, MARKETING, 200)
+
+        val managerOfFinance =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentFinance)
+        val financeEmployee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", false, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(financeEmployee, managerOfFinance),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), false, NotifyMethod.SLACK))
+        val workflow = Workflow(1, 1, 100000.toBigDecimal(), rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(managerOfFinance, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(managerOfFinance, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
+    internal fun `should take the last rule if invoice amount is not higher than any cutoff rule`() {
+        // given
+        val invoice = Invoice(1, 100.toBigDecimal(), DepartmentName.FINANCE, false)
+
+        val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule3 = Rule(3, 1, department, 1000.toBigDecimal(), false, NotifyMethod.EMAIL)
+        val rules = listOf(rule1, rule2, rule3)
+
+        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
+
+        // when
+        val actual = subject.calculateRule(workflow, invoice)
+
+        // then
+        assertThat(actual).isEqualTo(rule3)
+    }
+
+    @Test
+    internal fun `should process rule based on higher cutoff_amount`() {
+        // given
+        val invoice = Invoice(1, 6000.toBigDecimal(), DepartmentName.FINANCE, false)
+
+        val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule3 = Rule(3, 1, department, 1000.toBigDecimal(), false, NotifyMethod.EMAIL)
+        val rules = listOf(rule1, rule2, rule3)
+
+        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
+
+        // when
+        val actual = subject.calculateRule(workflow, invoice)
+
+        // then
+        assertThat(actual).isEqualTo(rule1)
+    }
+
+    @Test
+    internal fun `should not use rule with the same cutoff`() {
+        // given
+        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
+
+        val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule3 = Rule(3, 1, department, 1000.toBigDecimal(), false, NotifyMethod.EMAIL)
+        val rules = listOf(rule1, rule2, rule3)
+
+        val workflow = Workflow(1, 1, null, rules)
+
+        // when
+        val actual = subject.calculateRule(workflow, invoice)
+
+        // then
+        assertThat(actual).isEqualTo(rule2)
+    }
+
+    @Test
+    /* Even though the rules are sorted when deserialized,
+     * the method itself does no sorting and thus takes index order
+     * */
+    internal fun `should process rules on order of insertion`() {
+        // given
+        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
+
+        val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
+        val rule3 = Rule(3, 1, department, 1000.toBigDecimal(), false, NotifyMethod.EMAIL)
+        val rules = listOf(rule3, rule2, rule1)
+
+        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
+
+        // when
+        val actual = subject.calculateRule(workflow, invoice)
+
+        // then
+        assertThat(actual).isEqualTo(rule3)
+    }
+
+    @Test
+    internal fun `should not process an invoice when there are no employees`() {
+        assertThat {
+            whenever(companyRepository.getById(1)).thenReturn(company.copy(employees = emptyList()))
+            whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+
+            subject.handleInvoice(invoice)
+        }.isFailure().all {
+            hasClass(MissingDataException::class.java)
+            messageContains("No manager found in the department FINANCE")
+        }
+    }
+
+    @Test
+    internal fun `should not process an invoice when there are no rules`() {
+        assertThat {
+            whenever(companyRepository.getById(1)).thenReturn(company)
+            whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow.copy(rules = emptyList()))
+
+            subject.handleInvoice(invoice)
+        }.isFailure().all {
+            hasClass(MissingDataException::class.java)
+            messageContains("No rules found in the workflow with id 1")
+        }
     }
 }
