@@ -97,7 +97,7 @@ class WorkflowService(
                     ?: throw MissingDataException("No Chief found in the department ${department?.name} with id $headEmployeeId")
             }
 
-            rule.requiresManager == true || invoice.requiresManager == true ->
+            rule.requiresManager == true && invoice.requiresManager == true ->
                 deptManagersOnly.firstOrNull { it.manager && it.department.id == rule.department.id }
                     ?: throw MissingDataException("No manager found in the department $departmentName")
 
