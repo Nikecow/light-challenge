@@ -70,7 +70,7 @@ class WorkflowService(
         logger.info { "Determining employee to notify based on rule with id ${rule.id}" }
 
         val employee = when {
-            invoice.amount.compareTo(chiefThreshold) == 1 -> {
+            chiefThreshold !== null && invoice.amount.compareTo(chiefThreshold) == 1 -> {
                 val department = company.departments.firstOrNull { it.name.toString() == invoice.department.toString() }
                 val headEmployeeId = department?.headEmployeeId
                 return company.employees.firstOrNull { it.id == headEmployeeId }

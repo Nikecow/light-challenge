@@ -129,6 +129,47 @@ internal class WorkflowServiceTest {
     }
 
     @Test
+    internal fun `should send a Slack to a marketing manager with workflow with chiefThreshold is NULL`() {
+        // given
+        val invoice = Invoice(1, 1000000.toBigDecimal(), DepartmentName.MARKETING, true)
+
+        val chiefOfFinanceId = 100
+        val chiefOfMarketingId = 200
+
+        val departmentFinance = Department(1, FINANCE, chiefOfFinanceId)
+        val departmentMarketing = Department(2, MARKETING, chiefOfMarketingId)
+
+        val managerOfMarketing =
+            Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentMarketing)
+        val chiefOfFinance =
+            Employee(chiefOfFinanceId, 1, "Will Smith", "cfo@mail.com", "51234", true, departmentFinance)
+        val chiefOfMarketing =
+            Employee(chiefOfMarketingId, 1, "Michael Dorsey", "cmo@mail.com", "61234", true, departmentMarketing)
+        val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, departmentFinance)
+
+        val company = company.copy(
+            employees = listOf(managerOfMarketing, employee, chiefOfFinance, chiefOfMarketing),
+            departments = listOf(departmentFinance, departmentMarketing)
+        )
+        val rules = listOf(Rule(1, 1, departmentMarketing, 5000.toBigDecimal(), true, NotifyMethod.SLACK))
+        val workflow = Workflow(1, 1, null, rules)
+
+        whenever(companyRepository.getById(1)).thenReturn(company)
+        whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
+        whenever(notifyService.notifyEmployee(managerOfMarketing, NotifyMethod.SLACK)).thenReturn(NotifyStatus.SUCCESS)
+
+        // when
+        val actual = subject.handleInvoice(invoice)
+
+        // then
+        verify(companyRepository).getById(1)
+        verify(workflowRepository).getByCompanyId(1)
+        verify(notifyService).notifyEmployee(managerOfMarketing, NotifyMethod.SLACK)
+
+        assertThat(actual).isEqualTo(NotifyStatus.SUCCESS)
+    }
+
+    @Test
     internal fun `should send a Slack to a marketing manager with invoice amount NOT higher than chiefThreshold`() {
         // given
         val chiefThreshold = 600000.toBigDecimal()
