@@ -11,7 +11,7 @@
 - **arg3** is an _enum_ for the `department` (_Finance, Marketing_)
 - **arg4** is a _bool_ for `manager_approval`
 
-#### Some Quick commands for the Flowchart (note: the default chief_cutoff is $10,000 in this case)
+#### Quick command list from the Flowchart scenarios
 
 ```sh
 ./gradlew run --args='1 15000 Marketing true' # Sends request to marketing chief via email
@@ -21,18 +21,23 @@
 ./gradlew run --args='1 4000 Finance true'    # Sends request to finance employee via slack
 ```
 
+Test them out and check the logging to verify! Note that the default `chief_cutoff` is $10,000.
+
 ### Assumptions
+
 - We assume every department has at least 1 Chief, 1 manager and 1 regular employee.
-- All Chiefs are managers, but not all managers are Chiefs and the same goes for employees and managers.
-- When we want to notify a manager we will not notify a chief unless the invoice amount exceeds the `chief_threshold`. 
+- All Chiefs are managers, but not all managers are Chiefs and the same goes for managers and employees.
+- When we want to notify a manager we will not notify a chief unless the invoice amount exceeds the `chief_threshold`.
 - The same goes for employees. When we fall back to some rule or invoice which does not require a manager, we will only notify an employee that is not a manager.
 
 ### Design:
+
 - A workflow specifies the amount which will always requires a Chief.
 - If no conditions are met, send the request to a regular employee of the department attached to the fall back rule.
 - For currencies we use `BigDecimals` in the database and application to maintain precision.
-- Priority of rules are evaluated by _descending_ order of the `cutoff_amount`, then the `department` and finally the `requires_approval`.
-- An approval request will be sent to a manager if either the `invoice` or the `rule` has `true` for `requires_manager`.
+- Priority of rules are evaluated by _descending_ order of the `cutoff_amount` then the `department` and finally
+  the `requires_approval`.
+- An approval request will be sent to a manager if both the `invoice` and the `rule` require manager approval.
 
 ### Possible Improvements:
 - We currently retrieve big data sets from the Database at once, preventing lots of manual lookups. On production a wiser thing could be to split this up into multiple queries to avoid huge memory usage.
