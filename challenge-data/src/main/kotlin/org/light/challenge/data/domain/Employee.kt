@@ -7,5 +7,5 @@ data class Employee(
     val email: String,
     val slackId: String,
     val manager: Boolean,
-    val department: Department?
+    val department: Department
 )

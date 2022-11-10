@@ -23,13 +23,13 @@ object DepartmentTable : IntIdTable() {
 
 object WorkflowTable : IntIdTable() {
     val companyId = reference("company_id", CompanyTable)
-    val chiefThreshold = varchar("chief_threshold", 50).nullable()
+    val chiefThreshold = decimal("chief_threshold", 4, 4).nullable()
 }
 
 object RuleTable : IntIdTable() {
     val workflowId = reference("workflow_id", WorkflowTable)
     val departmentId = reference("department_id", DepartmentTable)
-    val cutoffAmount = varchar("cutoff_amount", 50).nullable()
+    val cutoffAmount = decimal("cutoff_amount", 4, 4).nullable()
     val requiresManager = bool("requires_manager").nullable()
     val notifyMethod = varchar("notify_method", 50)
 }

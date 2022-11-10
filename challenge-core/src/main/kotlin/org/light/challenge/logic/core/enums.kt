@@ -4,3 +4,7 @@ enum class DepartmentName {
     MARKETING,
     FINANCE
 }
+
+enum class NotifyStatus {
+    SUCCESS, FAILURE
+}

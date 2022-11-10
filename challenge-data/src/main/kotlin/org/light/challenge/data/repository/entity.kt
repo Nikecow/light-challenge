@@ -3,6 +3,7 @@ package org.light.challenge.data.repository
 import org.jetbrains.exposed.dao.EntityID
 import org.jetbrains.exposed.dao.IntEntity
 import org.jetbrains.exposed.dao.IntEntityClass
+import org.jetbrains.exposed.sql.SortOrder
 import org.light.challenge.data.CompanyTable
 import org.light.challenge.data.DepartmentTable
 import org.light.challenge.data.EmployeeTable
@@ -21,17 +22,14 @@ class CompanyEntity(id: EntityID<Int>) : IntEntity(id) {
 
     var name by CompanyTable.name
     val employees by EmployeeEntity referrersOn EmployeeTable.companyId
-    val workflows by WorkflowEntity referrersOn WorkflowTable.companyId
     val departments by DepartmentEntity referrersOn DepartmentTable.companyId
 
     fun toCompany() = Company(
         id.value,
         name,
         employees.map { it.toEmployee() },
-        workflows.firstOrNull()?.toWorkflow(),
         departments.map { it.toDepartment() })
 }
-
 
 class WorkflowEntity(id: EntityID<Int>) : IntEntity(id) {
     companion object : IntEntityClass<WorkflowEntity>(WorkflowTable)
@@ -40,7 +38,7 @@ class WorkflowEntity(id: EntityID<Int>) : IntEntity(id) {
     var chiefThreshold by WorkflowTable.chiefThreshold
     val rules by RuleEntity referrersOn RuleTable.workflowId
 
-    fun toWorkflow() = Workflow(id.value, companyId.value, chiefThreshold?.toBigDecimal(), rules.map { it.toRule() })
+    fun toWorkflow() = Workflow(id.value, companyId.value, chiefThreshold, rules.orderBy(RuleTable.cutoffAmount to SortOrder.DESC).map { it.toRule() })
 }
 
 class RuleEntity(id: EntityID<Int>) : IntEntity(id) {
@@ -56,7 +54,7 @@ class RuleEntity(id: EntityID<Int>) : IntEntity(id) {
         id.value,
         workflowId.value,
         department.toDepartment(),
-        cutoffAmount?.toBigDecimal(),
+        cutoffAmount,
         requiresManager,
         NotifyMethod.valueOf(notifyMethod)
     )

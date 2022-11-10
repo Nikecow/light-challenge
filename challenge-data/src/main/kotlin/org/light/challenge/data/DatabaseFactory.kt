@@ -11,16 +11,15 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
 import org.light.challenge.data.domain.DepartmentName
 import org.light.challenge.data.domain.NotifyMethod
+import java.math.BigDecimal
 
-// todo: https://ktor.io/docs/interactive-website-add-persistence.html#startup make it mockable with interface?
+// todo: https://github.com/google-developer-training/android-kotlin-fundamentals-apps/blob/master/RepositoryPattern/app/src/main/java/com/example/android/devbyteviewer/database/Room.kt
 object DatabaseFactory {
     private val db: Database = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
     private val logger = KotlinLogging.logger {}
 
     fun init() {
         logger.info { "Connecting to database" }
-
-
 
         transaction {
             addLogger(StdOutSqlLogger)
@@ -125,36 +124,35 @@ object DatabaseFactory {
             promoteEmployeeToHead(deptId = finDeptId.value, empId = cfoId)
             promoteEmployeeToHead(deptId = mktDeptId.value, empId = cmoId)
 
-            val wId = insertWorkflow(cId, "10000")
+            val wId = insertWorkflow(cId, "10000".toBigDecimal())
 
-            // RuleTable 1
+            // Rule 2
+            insertRule(
+                flowId = wId,
+                deptId = finDeptId,
+                method = NotifyMethod.SLACK,
+                cutoff = "10000".toBigDecimal(),
+                manager = null
+            )
+            // Rule 1
             insertRule(
                 flowId = wId,
                 deptId = mktDeptId,
                 method = NotifyMethod.EMAIL,
-                cutoff = "10000",
+                cutoff = "10000".toBigDecimal(),
                 manager = null
             )
 
-            // RuleTable 2
+            // Rule 3
             insertRule(
                 flowId = wId,
                 deptId = finDeptId,
                 method = NotifyMethod.SLACK,
-                cutoff = "10000",
-                manager = null
-            )
-
-            // RuleTable 3
-            insertRule(
-                flowId = wId,
-                deptId = finDeptId,
-                method = NotifyMethod.SLACK,
-                cutoff = "5000",
+                cutoff = "5000".toBigDecimal(),
                 manager = true
             )
 
-            // RuleTable 4 (fallback rule)
+            // Rule 4 (fallback rule)
             insertRule(
                 flowId = wId,
                 deptId = finDeptId,
@@ -199,7 +197,7 @@ object DatabaseFactory {
         it[companyId] = cId
     }
 
-    private fun insertWorkflow(cId: EntityID<Int>, threshold: String?) = WorkflowTable.insertAndGetId {
+    private fun insertWorkflow(cId: EntityID<Int>, threshold: BigDecimal?) = WorkflowTable.insertAndGetId {
         it[companyId] = cId
         it[chiefThreshold] = threshold
     }
@@ -208,7 +206,7 @@ object DatabaseFactory {
         flowId: EntityID<Int>,
         deptId: EntityID<Int>,
         method: NotifyMethod,
-        cutoff: String?,
+        cutoff: BigDecimal?,
         manager: Boolean?,
     ): EntityID<Int> {
         val rId = RuleTable.insertAndGetId {

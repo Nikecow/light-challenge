@@ -8,7 +8,7 @@ internal class WorkflowServiceTest {
     @Test
     internal fun `should process an invoice`() {
         // given
-        val invoice = Invoice(1, 10.toBigDecimal(), DepartmentName.FINANCE, false)
+        val invoice = Invoice(1, 5001.toBigDecimal(), DepartmentName.FINANCE, false)
 
         // when
         subject.handleInvoice(invoice)
