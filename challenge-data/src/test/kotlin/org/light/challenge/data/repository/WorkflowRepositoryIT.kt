@@ -18,7 +18,6 @@ class WorkflowRepositoryIT {
     private val subject = WorkflowRepository()
 
     @BeforeEach
-    @Test
     internal fun init() {
         DatabaseFactory.resetTables()
     }

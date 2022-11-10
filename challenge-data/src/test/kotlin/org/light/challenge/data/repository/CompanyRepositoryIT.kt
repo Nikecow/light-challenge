@@ -16,7 +16,6 @@ class CompanyRepositoryIT {
     private val subject = CompanyRepository()
 
     @BeforeEach
-    @Test
     internal fun init() {
         DatabaseFactory.resetTables()
     }
