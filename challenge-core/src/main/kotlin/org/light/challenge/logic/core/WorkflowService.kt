@@ -42,7 +42,7 @@ class WorkflowService(
         val status = notifyService.notifyEmployee(targetEmployee, rule.notifyMethod)
 
         return status.also {
-            logger.info { "Notified employee from department ${targetEmployee.department.name} with status: ${it.name}" }
+            logger.info { "Notified the ${targetEmployee.department.name} department, returned status: ${it.name}" }
         }
     }
 
@@ -51,15 +51,28 @@ class WorkflowService(
 
         logger.info { "Determining rule for invoice with amount $invoiceAmount" }
 
-        // Rules are ordered on init on descending cutoffAmount
         val rules = workflow.rules
 
-        val rule = rules.firstOrNull { r -> r.cutoffAmount?.compareTo(invoiceAmount) == -1 }
-            ?: rules.lastOrNull() ?: throw MissingDataException("No rules found in the workflow with id ${workflow.id}")
+        val rulesByCutoff = rules.filter { r -> r.cutoffAmount?.compareTo(invoiceAmount) == -1 }
+        val ruleByDepartment = rulesByCutoff.filter { r -> r.department.name.toString() == invoice.department.name }
+        val ruleByApproval = ruleByDepartment.filter { r -> r.requiresManager == invoice.requiresManager }
 
-        logger.info { "Using rule ${rule.id} with cutoff ${rule.cutoffAmount}" }
+        val filteredRule =
+            ruleByApproval.firstOrNull() ?:
+            ruleByDepartment.firstOrNull() ?:
+            rulesByCutoff.firstOrNull() ?:
+            rules.lastOrNull()
+            ?: throw MissingDataException("No rules found in the workflow with id ${workflow.id}")
 
-        return rule
+        logger.info {
+            "Using rule with id is ${filteredRule.id} " +
+                    "cutoff ${filteredRule.cutoffAmount} " +
+                    "department ${filteredRule.department.name} " +
+                    "requiresManager ${filteredRule.requiresManager} " +
+                    "and notifyMethod is ${filteredRule.notifyMethod}"
+        }
+
+        return filteredRule
     }
 
     private fun determineEmployee(
@@ -78,7 +91,7 @@ class WorkflowService(
             chiefThreshold !== null && invoice.amount.compareTo(chiefThreshold) == 1 -> {
                 val department = company.departments.firstOrNull { it.name.toString() == invoice.department.toString() }
                 val headEmployeeId = department?.headEmployeeId
-                return company.employees.firstOrNull { it.id == headEmployeeId }
+                company.employees.firstOrNull { it.id == headEmployeeId }
                     ?: throw MissingDataException("No Chief found in the department ${department?.name} with id $headEmployeeId")
             }
 
@@ -90,13 +103,13 @@ class WorkflowService(
                 ?: throw MissingDataException("No employees found in the department $departmentName")
         }
 
-        return employee.also { logger.info { "Target ${employee.getTitle()} is \"${it.name}\" with id ${it.id}" } }
+        return employee.also { logger.info { "Target is ${employee.getTitle()} named \"${it.name}\" with id ${it.id}" } }
     }
 
     fun Employee.getTitle() = when {
-        department.headEmployeeId == id -> "chief"
-        manager -> "manager"
-        else -> "employee"
+        department.headEmployeeId == id -> "chief of ${department.name}"
+        manager -> "manager of ${department.name}"
+        else -> "employee of ${department.name}"
     }
 }
 

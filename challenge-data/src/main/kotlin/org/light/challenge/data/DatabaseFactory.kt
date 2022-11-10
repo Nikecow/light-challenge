@@ -126,14 +126,6 @@ object DatabaseFactory {
 
             val wId = insertWorkflow(cId, "10000".toBigDecimal())
 
-            // Rule 2
-            insertRule(
-                flowId = wId,
-                deptId = finDeptId,
-                method = NotifyMethod.SLACK,
-                cutoff = "10000".toBigDecimal(),
-                manager = null
-            )
             // Rule 1
             insertRule(
                 flowId = wId,
@@ -143,11 +135,20 @@ object DatabaseFactory {
                 manager = null
             )
 
-            // Rule 3
+            // Rule 2
             insertRule(
                 flowId = wId,
                 deptId = finDeptId,
                 method = NotifyMethod.SLACK,
+                cutoff = "10000".toBigDecimal(),
+                manager = null
+            )
+
+            // Rule 3
+            insertRule(
+                flowId = wId,
+                deptId = finDeptId,
+                method = NotifyMethod.EMAIL,
                 cutoff = "5000".toBigDecimal(),
                 manager = true
             )

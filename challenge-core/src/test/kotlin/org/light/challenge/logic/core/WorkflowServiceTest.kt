@@ -93,7 +93,6 @@ internal class WorkflowServiceTest {
         val departmentFinance = Department(1, FINANCE, chiefOfFinanceId)
         val departmentMarketing = Department(2, MARKETING, chiefOfMarketingId)
 
-
         val managerOfMarketing =
             Employee(5, 1, "Sean Seagal", "marketing-sean@mail.com", "71234", true, departmentMarketing)
         val chiefOfFinance =
@@ -330,7 +329,7 @@ internal class WorkflowServiceTest {
     }
 
     @Test
-    internal fun `should process rule based on higher cutoff_amount`() {
+    internal fun `should take rule based on all matching properties`() {
         // given
         val invoice = Invoice(1, 6000.toBigDecimal(), DepartmentName.FINANCE, false)
 
@@ -345,13 +344,13 @@ internal class WorkflowServiceTest {
         val actual = subject.calculateRule(workflow, invoice)
 
         // then
-        assertThat(actual).isEqualTo(rule1)
+        assertThat(actual).isEqualTo(rule3)
     }
 
     @Test
-    internal fun `should not use rule with the same cutoff`() {
+    internal fun `should take rule based on matching cutoff and department`() {
         // given
-        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
+        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, true)
 
         val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
         val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
@@ -365,28 +364,6 @@ internal class WorkflowServiceTest {
 
         // then
         assertThat(actual).isEqualTo(rule2)
-    }
-
-    @Test
-    /* Even though the rules are sorted when deserialized,
-     * the method itself does no sorting and thus takes index order
-     * */
-    internal fun `should process rules on order of insertion`() {
-        // given
-        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
-
-        val rule1 = Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.SLACK)
-        val rule2 = Rule(2, 1, department, 3000.toBigDecimal(), true, NotifyMethod.SLACK)
-        val rule3 = Rule(3, 1, department, 1000.toBigDecimal(), false, NotifyMethod.EMAIL)
-        val rules = listOf(rule3, rule2, rule1)
-
-        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
-
-        // when
-        val actual = subject.calculateRule(workflow, invoice)
-
-        // then
-        assertThat(actual).isEqualTo(rule3)
     }
 
     @Test
