@@ -32,7 +32,7 @@ Test them out and check the logging to verify! Note that the default `chief_thre
 
 ### Design:
 
-- A workflow specifies the amount which will always requires a Chief.
+- A workflow can specify the amount which will always requires a Chief approval called the `chief_threshold`.
 - If no conditions are met, send the request to a regular employee of the department attached to the fall back rule.
 - For currencies we use `BigDecimals` in the database and application to maintain precision.
 - Priority of rules are evaluated by _descending_ order of the `cutoff_amount` then the `department` and finally
