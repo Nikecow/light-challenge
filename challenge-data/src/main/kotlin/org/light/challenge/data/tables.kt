@@ -28,16 +28,8 @@ object WorkflowTable : IntIdTable() {
 
 object RuleTable : IntIdTable() {
     val workflowId = reference("workflow_id", WorkflowTable)
-}
-
-object ConditionTable : IntIdTable() {
-    val ruleId = reference("rule_id", RuleTable)
     val departmentId = reference("department_id", DepartmentTable)
     val cutoffAmount = varchar("cutoff_amount", 50).nullable()
     val requiresManager = bool("requires_manager").nullable()
-}
-
-object ActionTable : IntIdTable() {
-    val ruleId = reference("rule_id", RuleTable)
     val notifyMethod = varchar("notify_method", 50)
 }

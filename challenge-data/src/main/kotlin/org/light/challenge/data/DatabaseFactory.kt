@@ -6,7 +6,6 @@ import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.StdOutSqlLogger
 import org.jetbrains.exposed.sql.addLogger
-import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.insertAndGetId
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.jetbrains.exposed.sql.update
@@ -34,8 +33,6 @@ object DatabaseFactory {
                 EmployeeTable,
                 RuleTable,
                 DepartmentTable,
-                ConditionTable,
-                ActionTable
             )
             SchemaUtils.create(
                 CompanyTable,
@@ -43,8 +40,6 @@ object DatabaseFactory {
                 EmployeeTable,
                 RuleTable,
                 DepartmentTable,
-                ConditionTable,
-                ActionTable
             )
 
             logger.info { "Populating database with entries" }
@@ -218,17 +213,9 @@ object DatabaseFactory {
     ): EntityID<Int> {
         val rId = RuleTable.insertAndGetId {
             it[workflowId] = flowId
-        }
-
-        ConditionTable.insert {
-            it[ruleId] = rId
             it[departmentId] = deptId
             it[cutoffAmount] = cutoff
             it[requiresManager] = manager
-        }
-
-        ActionTable.insert {
-            it[ruleId] = rId
             it[notifyMethod] = method.name
         }
 
