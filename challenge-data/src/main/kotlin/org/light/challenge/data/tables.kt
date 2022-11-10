@@ -1,7 +1,6 @@
 package org.light.challenge.data
 
 import org.jetbrains.exposed.dao.IntIdTable
-import org.jetbrains.exposed.sql.Table
 
 object CompanyTable : IntIdTable() {
     val name = varchar("name", 50)
@@ -19,6 +18,7 @@ object EmployeeTable : IntIdTable() {
 object DepartmentTable : IntIdTable() {
     val name = varchar("name", 50).uniqueIndex()
     val headEmployeeId = reference("head_employee_id", EmployeeTable).nullable()
+    val companyId = reference("company_id", CompanyTable)
 }
 
 object WorkflowTable : IntIdTable() {

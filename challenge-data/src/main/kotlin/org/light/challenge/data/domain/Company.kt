@@ -4,5 +4,6 @@ data class Company (
     val id: Int,
     val name: String,
     val employees: List<Employee>,
-    val workflow: Workflow?
+    val workflow: Workflow?,
+    val departments: List<Department>
 )

@@ -15,7 +15,7 @@ import org.light.challenge.data.domain.NotifyMethod
 
 // todo: https://ktor.io/docs/interactive-website-add-persistence.html#startup make it mockable with interface?
 object DatabaseFactory {
-    private val db: Database  = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
+    private val db: Database = Database.connect("jdbc:sqlite::memory:test?mode=memory&cache=shared", "org.sqlite.JDBC")
     private val logger = KotlinLogging.logger {}
 
     fun init() {
@@ -28,16 +28,32 @@ object DatabaseFactory {
 
             logger.info { "Initializing database tables" }
 
-            SchemaUtils.drop(CompanyTable, WorkflowTable, EmployeeTable, RuleTable, DepartmentTable, ConditionTable, ActionTable)
-            SchemaUtils.create(CompanyTable, WorkflowTable, EmployeeTable, RuleTable, DepartmentTable, ConditionTable, ActionTable)
+            SchemaUtils.drop(
+                CompanyTable,
+                WorkflowTable,
+                EmployeeTable,
+                RuleTable,
+                DepartmentTable,
+                ConditionTable,
+                ActionTable
+            )
+            SchemaUtils.create(
+                CompanyTable,
+                WorkflowTable,
+                EmployeeTable,
+                RuleTable,
+                DepartmentTable,
+                ConditionTable,
+                ActionTable
+            )
 
             logger.info { "Populating database with entries" }
 
             val cId = insertCompany("Big Corporation Inc")
-            val finDeptId = insertDepartment(DepartmentName.FINANCE)
-            val mktDeptId = insertDepartment(DepartmentName.MARKETING)
+            val finDeptId = insertDepartment(DepartmentName.FINANCE, cId)
+            val mktDeptId = insertDepartment(DepartmentName.MARKETING, cId)
 
-            // Marketing Employees
+            // Marketing EmployeeTable
             val cmoId = insertEmployee(
                 cId = cId,
                 fullName = "Jack Dorsey",
@@ -74,7 +90,7 @@ object DatabaseFactory {
                 deptId = mktDeptId
             )
 
-            // Finance Employees
+            // Finance EmployeeTable
             val cfoId = insertEmployee(
                 cId = cId,
                 fullName = "William Smith",
@@ -160,7 +176,14 @@ object DatabaseFactory {
         it[name] = cmpName
     }
 
-    private fun insertEmployee(cId: EntityID<Int>, fullName: String, mail: String, slack: String, mngr: Boolean, deptId: EntityID<Int>) =
+    private fun insertEmployee(
+        cId: EntityID<Int>,
+        fullName: String,
+        mail: String,
+        slack: String,
+        mngr: Boolean,
+        deptId: EntityID<Int>
+    ) =
         EmployeeTable.insertAndGetId {
             it[companyId] = cId
             it[name] = fullName
@@ -176,8 +199,9 @@ object DatabaseFactory {
         }
     }
 
-    private fun insertDepartment(department: DepartmentName) = DepartmentTable.insertAndGetId {
+    private fun insertDepartment(department: DepartmentName, cId: EntityID<Int>) = DepartmentTable.insertAndGetId {
         it[name] = department.name
+        it[companyId] = cId
     }
 
     private fun insertWorkflow(cId: EntityID<Int>, threshold: String?) = WorkflowTable.insertAndGetId {
