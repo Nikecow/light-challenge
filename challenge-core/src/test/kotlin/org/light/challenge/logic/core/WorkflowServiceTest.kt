@@ -81,14 +81,15 @@ internal class WorkflowServiceTest {
 
     @Test
     /*
-    * Even though the rule says go to Finance, for invoices with an amount
-    * higher than the chiefThreshold the invoice should go to the invoice
-    * related department, which is Marketing in this case
+    * Even though the rule says go to Finance and that it
+    * does not require manager, for invoices with an amount
+    * higher than the chiefThreshold the invoice should go to
+    * the head of the invoice related department, which is Marketing in this case
     * */
     internal fun `should send an email to the CMO when invoice amount higher than chiefThreshold related to Marketing`() {
         // given
         val chiefThreshold = 600000.toBigDecimal()
-        val invoice = Invoice(1, chiefThreshold.add(BigDecimal.ONE), DepartmentName.MARKETING, false)
+        val invoice = Invoice(1, chiefThreshold.add(BigDecimal.ONE), DepartmentName.MARKETING, true)
 
         val chiefOfFinanceId = 100
         val chiefOfMarketingId = 200
@@ -109,7 +110,7 @@ internal class WorkflowServiceTest {
             employees = listOf(managerOfMarketing, employee, chiefOfFinance, chiefOfMarketing),
             departments = listOf(departmentFinance, departmentMarketing)
         )
-        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), true, NotifyMethod.EMAIL))
+        val rules = listOf(Rule(1, 1, departmentFinance, 5000.toBigDecimal(), false, NotifyMethod.EMAIL))
         val workflow = Workflow(1, 1, chiefThreshold, rules)
 
         whenever(companyRepository.getById(1)).thenReturn(company)
