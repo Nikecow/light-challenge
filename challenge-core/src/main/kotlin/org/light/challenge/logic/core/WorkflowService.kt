@@ -68,11 +68,11 @@ class WorkflowService(
             ?: throw MissingDataException("No rules found in the workflow with id ${workflow.id}")
 
         logger.info {
-            "Using rule with id is ${filteredRule.id} " +
+            "Using rule with id ${filteredRule.id} " +
                     "cutoff ${filteredRule.cutoffAmount} " +
                     "department ${filteredRule.department.name} " +
                     "requiresManager ${filteredRule.requiresManager} " +
-                    "and notifyMethod is ${filteredRule.notifyMethod}"
+                    "and notifyMethod ${filteredRule.notifyMethod}"
         }
 
         return filteredRule
