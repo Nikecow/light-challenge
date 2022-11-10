@@ -9,6 +9,7 @@ import assertk.assertions.messageContains
 import org.junit.jupiter.api.Test
 import org.light.challenge.data.domain.Company
 import org.light.challenge.data.domain.Department
+import org.light.challenge.data.domain.DepartmentName
 import org.light.challenge.data.domain.DepartmentName.FINANCE
 import org.light.challenge.data.domain.DepartmentName.MARKETING
 import org.light.challenge.data.domain.Employee
@@ -17,6 +18,8 @@ import org.light.challenge.data.domain.Rule
 import org.light.challenge.data.domain.Workflow
 import org.light.challenge.data.repository.CompanyRepository
 import org.light.challenge.data.repository.WorkflowRepository
+import org.light.challenge.logic.core.domain.Invoice
+import org.light.challenge.logic.core.domain.NotifyStatus
 import org.mockito.Mockito.verify
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever

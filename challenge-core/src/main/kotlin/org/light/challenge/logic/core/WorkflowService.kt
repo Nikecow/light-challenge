@@ -8,6 +8,8 @@ import org.light.challenge.data.domain.Rule
 import org.light.challenge.data.domain.Workflow
 import org.light.challenge.data.repository.CompanyRepository
 import org.light.challenge.data.repository.WorkflowRepository
+import org.light.challenge.logic.core.domain.Invoice
+import org.light.challenge.logic.core.domain.NotifyStatus
 import java.math.BigDecimal
 
 
@@ -83,7 +85,7 @@ class WorkflowService(
     ): Employee {
         val departmentName = rule.department.name
         val deptManagersOnly =
-            company.employees.filter { it.department.id == rule.department.id && rule.department.headEmployeeId !== it.id }
+            company.employees.filter { it.department.id == rule.department.id && rule.department.headEmployeeId != it.id }
 
         logger.info { "Determining employee to notify based on rule with id ${rule.id}" }
 

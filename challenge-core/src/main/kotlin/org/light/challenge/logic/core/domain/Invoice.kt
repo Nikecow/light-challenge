@@ -1,5 +1,6 @@
-package org.light.challenge.logic.core
+package org.light.challenge.logic.core.domain
 
+import org.light.challenge.data.domain.DepartmentName
 import java.math.BigDecimal
 
 data class Invoice(

@@ -3,8 +3,12 @@ package org.light.challenge.logic.core
 import mu.KotlinLogging
 import org.light.challenge.data.domain.Employee
 import org.light.challenge.data.domain.NotifyMethod
+import org.light.challenge.logic.core.domain.NotifyStatus
 
-class NotifyService {
+class NotifyService(
+    private val emailService: EmailService,
+    private val slackService: SlackService
+) {
 
     private val logger = KotlinLogging.logger {}
 
@@ -14,11 +18,11 @@ class NotifyService {
     private fun notifyEmail(employee: Employee): NotifyStatus {
         logger.info { "Attempting to notify employee with id ${employee.id} by Email" }
 
-        val email = employee.email
+        val emailAddress = employee.email
 
-        // val result = emailService().sendMail(email)
+        val result = emailService.sendMail(emailAddress)
 
-        return NotifyStatus.SUCCESS
+        return result
     }
 
     private fun notifySlack(employee: Employee): NotifyStatus {
@@ -26,8 +30,8 @@ class NotifyService {
 
         val slackId = employee.slackId
 
-        // val result = slackService().notify(id)
+        val result = slackService.notify(slackId)
 
-        return NotifyStatus.SUCCESS
+        return result
     }
 }
