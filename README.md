@@ -21,7 +21,7 @@
 ./gradlew run --args='1 4000 Finance true'    # Sends request to finance employee via slack
 ```
 
-Test them out and check the logging to verify! Note that the default `chief_cutoff` is $10,000.
+Test them out and check the logging to verify! Note that the default `chief_threshold` is $10,000.
 
 ### Assumptions
 
