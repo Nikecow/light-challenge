@@ -62,7 +62,12 @@ class WorkflowService(
         return rule
     }
 
-    fun determineEmployee(company: Company, rule: Rule, invoice: Invoice, chiefThreshold: BigDecimal?): Employee {
+    private fun determineEmployee(
+        company: Company,
+        rule: Rule,
+        invoice: Invoice,
+        chiefThreshold: BigDecimal?
+    ): Employee {
         val departmentName = rule.department.name
         val deptManagersOnly =
             company.employees.filter { it.department.id == rule.department.id && rule.department.headEmployeeId !== it.id }
