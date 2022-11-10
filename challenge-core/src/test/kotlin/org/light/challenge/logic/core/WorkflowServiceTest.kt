@@ -37,7 +37,7 @@ internal class WorkflowServiceTest {
     val workflow = Workflow(1, 1,  10000.toBigDecimal(), rules)
 
     @Test
-    internal fun `should process a Slack invoice`() {
+    internal fun `should process an invoice and send request on Slack`() {
         // given
         whenever(companyRepository.getById(1)).thenReturn(company)
         whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
@@ -55,14 +55,10 @@ internal class WorkflowServiceTest {
     }
 
     @Test
-    internal fun `should process an Email invoice`() {
+    internal fun `should process an invoice and send request by Email`() {
         // given
-        val invoice = Invoice(1, 5000.toBigDecimal(), DepartmentName.FINANCE, false)
-        val department = Department(1, FINANCE, null)
-        val employee = Employee(10, 1, "Jack Smith", "some@mail.com", "1234", true, department)
-        val company = Company(1, "SomeCompany", listOf(employee), listOf(department))
         val rules = listOf(Rule(1, 1, department, 5000.toBigDecimal(), true, NotifyMethod.EMAIL))
-        val workflow = Workflow(1, 1, 10000.toBigDecimal(), rules)
+        val workflow = Workflow(1, 1,  10000.toBigDecimal(), rules)
 
         whenever(companyRepository.getById(1)).thenReturn(company)
         whenever(workflowRepository.getByCompanyId(1)).thenReturn(workflow)
@@ -212,10 +208,10 @@ internal class WorkflowServiceTest {
     }
 
     @Test
-    internal fun `should send a Slack to a Finance employee with invoice amount NOT higher than any threshold with rule which does NOT require manager`() {
+    internal fun `should send a Slack to employee of department of rule with invoice amount NOT higher than any threshold and which does NOT require manager`() {
         // given
         val requiresManager = false
-        val invoice = Invoice(1, 20.toBigDecimal(), DepartmentName.FINANCE, requiresManager)
+        val invoice = Invoice(1, 20.toBigDecimal(), DepartmentName.MARKETING, requiresManager)
 
         val departmentFinance = Department(50, FINANCE, 100)
         val departmentMarketing = Department(40, MARKETING, 200)
